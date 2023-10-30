@@ -10,7 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   obd2_flutter_plugin:
-      path: "../obd2_flutter_plugin"
+      path: "obd2_flutter_plugin"
 
 dev_dependencies:
   flutter_test:

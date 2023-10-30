@@ -102,7 +102,7 @@ packages:
   obd2_flutter_plugin:
     dependency: "direct main"
     description:
-      path: "../../obd2_flutter_plugin"
+      path: obd2_flutter_plugin
       relative: true
     source: path
     version: "0.0.1"
