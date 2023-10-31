@@ -35,7 +35,9 @@ class OBD2 : NSObject {
     }
 
     public func connect(target address: String) async -> Bool {
-        return await self.bluetoothManager!.connect(target: address)
+        guard let bm = self.bluetoothManager else { return false }
+        guard bm.isInitialized else { return false }
+        return await bm.connect(target: address)
     }
 
     /**
