@@ -7,6 +7,7 @@ class BluetoothManager : NSObject {
     private let logger = Logger("BLEManager")
     private var delegate: BluetoothManagerDelegate?
     private var boundedDevices: [String: CBPeripheral] = [:]
+    private var scannedDevicesUUIDs: [UUID] = []
 
     //* Bluetooth runtime
     private var centralManager: CBCentralManager?
@@ -29,6 +30,11 @@ class BluetoothManager : NSObject {
             return self.connected && self.obdChannel != nil
         }
     }
+    public var isScanning: Bool {
+        get {
+            return self.isInitialized && self.centralManager?.isScanning ?? false
+        }
+    }
 
     //* Flags for commands with expected responses
     private var flagWaitingForResponse: Bool = false
@@ -42,28 +48,8 @@ class BluetoothManager : NSObject {
     }
     
     public func scanForDevices() {
-        if self.isInitialized {
+        if !self.isScanning {
             self.centralManager?.scanForPeripherals(withServices: nil, options: nil)
-        }
-    }
-
-    /**
-    * Performs a characteristics discovery for each service
-    * discovered on connected device
-    *
-    * NOTE: Results are delegated to CBPeripheralDelegate
-    */
-    private func discoverCharacteristics(client: CBPeripheral?) {
-        if let services = client?.services {
-            logger.log("===== START CHARACTERISTICS DISCOVERY =====")
-            for service in services {
-                logger.log("\tTrying with service: \(service.uuid)")
-                //* Discover our chars with our specific UUIDs
-                client?.discoverCharacteristics(nil, for: service)
-                if service.uuid == UUIDs.serviceUUID || service.uuid == UUIDs.charUUID {
-                }
-            }
-            logger.log("===== END CHARACTERISTICS DISCOVERY =====")
         }
     }
 
@@ -73,9 +59,7 @@ class BluetoothManager : NSObject {
     */
     public func retrieveBoundedBluetoothDevicesSerialized() -> [String] {
         var devices: [String] = []
-        let devicesList: [CBPeripheral]  = self.centralManager?.retrievePeripherals(withIdentifiers: [
-            UUID(uuidString: "5541F9E2-0A0C-FBCD-EAAA-A4DB505F2A7C")!
-        ]) ?? []
+        let devicesList: [CBPeripheral]  = self.centralManager?.retrievePeripherals(withIdentifiers: self.scannedDevicesUUIDs) ?? []
         logger.log("Found \(devicesList.count) device.")
         for bleDevice: CBPeripheral in devicesList {
             if bleDevice.name != nil {
@@ -111,7 +95,7 @@ class BluetoothManager : NSObject {
                 //* Check again
                 if self.obdAdapter == nil {
                     logger.log("Can't find the device at all. It may be out of range.")
-                    //* OBD adapter is either out of range or hasn't connected to system at first
+                    // OBD adapter is either out of range or hasn't connected to system at first
                     return false
                 }
             } else {
@@ -124,6 +108,26 @@ class BluetoothManager : NSObject {
             CBConnectPeripheralOptionNotifyOnConnectionKey: true
         ])
         return self.connected
+    }
+
+    /**
+    * Performs a characteristics discovery for each service
+    * discovered on connected device
+    *
+    * NOTE: Results are delegated to CBPeripheralDelegate
+    */
+    private func discoverCharacteristics(client: CBPeripheral?) {
+        if let services = client?.services {
+            logger.log("===== START CHARACTERISTICS DISCOVERY =====")
+            for service in services {
+                logger.log("\tTrying with service: \(service.uuid)")
+                //* Discover our chars with our specific UUIDs
+                client?.discoverCharacteristics(nil, for: service)
+                if service.uuid == UUIDs.serviceUUID || service.uuid == UUIDs.charUUID {
+                }
+            }
+            logger.log("===== END CHARACTERISTICS DISCOVERY =====")
+        }
     }
 
     public func send(dataToSend: String) async throws {
@@ -145,17 +149,16 @@ extension BluetoothManager: CBCentralManagerDelegate {
 
     /** [DELEGATED] Called when central manager has discovered a new peripheral while performing a scan */
     func centralManager( _ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
-        // Log
         let name = peripheral.name ?? "unnamed device"
-        logger.log("Found device: \(name) | \(peripheral.identifier.uuidString)")
-        logger.log("=======================")
-        if peripheral.identifier.uuidString == "36464C3B-E4B3-F601-0D7C-90F9B3E17B27" {
-            logger.log("Found device")
+        let address = peripheral.identifier
+        self.scannedDevicesUUIDs.append(address)
+        logger.log("\nDiscovered BLE device: \(name) | \(address.uuidString)")
+        if name == OBDConstants.OBD_ADAPTER_NAME && !self.isChannelOpened {
+            logger.log("Found adapter at address: \(address.uuidString)")
             self.centralManager?.stopScan()
-            self.boundedDevices["36464C3B-E4B3-F601-0D7C-90F9B3E17B27"] = peripheral
-            Task {
-                await self.connect(target: "36464C3B-E4B3-F601-0D7C-90F9B3E17B27")
-            }
+            self.obdAdapter = peripheral
+            self.boundedDevices[address.uuidString] = peripheral
+            self.connect(target: address)
         }
     }
     
@@ -168,6 +171,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
     func centralManager( central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         //* Discover services
         self.connected = true
+        self.obdAdapter?.delegate = self
         self.obdAdapter?.discoverServices(nil)
         self.delegate?.onAdapterConnected()
         logger.log("Connected to \(peripheral.identifier.uuidString)")
@@ -176,11 +180,13 @@ extension BluetoothManager: CBCentralManagerDelegate {
     /** [DELEGATED] Called when the OBD adapter has disconnected or its connection was lost */
     func centralManager(central: CBCentralManager, didDisconnect peripheral: CBPeripheral, error: Error?) {
         self.connected = false
+        self.obdAdapter?.delegate = nil
         logger.log("Disconnected from \(peripheral.identifier.uuidString) | Reason: \(String(describing: error))")
     }
         
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         if let error = error {
+            self.connected = false
             logger.log("Error occurred while connecting: \(error)")
         }
     }
@@ -207,7 +213,7 @@ extension BluetoothManager : CBPeripheralDelegate {
         }
         guard let characteristics = service.characteristics else { return }
         for characteristic in characteristics {
-            // todo: If we need to subscribe to this channel, uncomment next line
+            // todo: If we need to subscribe to this channel, uncomment the line below
             // characteristic.setNotifyValue(true)
             let uuid = characteristic.uuid.uuidString
             self.channels[uuid] = characteristic
@@ -229,7 +235,7 @@ extension BluetoothManager : CBPeripheralDelegate {
     }
 
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
-        if error != nil {
+        if let error = error {
             logger.log("Error sending data: \(error)")
         }
     }

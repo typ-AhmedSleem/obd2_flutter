@@ -51,10 +51,10 @@ public class Obd2FlutterPlugin: NSObject, FlutterPlugin {
               } else {
                   print("[PLUGIN]: Retrieved devices= \(devices)")
               }
-            result(devices)
+              result(devices)
           } catch {
             let emptyDevicesList: [String] = []
-              print("Can't get BLE devices")
+            print("Can't get BLE devices")
             result(emptyDevicesList)
           }
         } else {
