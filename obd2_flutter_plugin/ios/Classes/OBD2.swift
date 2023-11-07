@@ -90,26 +90,23 @@ protocol OBD2Delegate {
 
 extension OBD2: BluetoothManagerDelegate {
     func onAdapterConnected() {
-        
+        logger.log("Adapter connected.")
     }
     
     func onAdapterInitialized() {
-    
+        logger.log("Adapter has been initialized.")
     }
     
     func onAdapterStateChanged(state: Int) {
-        
+        logger.log("Adapter state has changed to: \(state)")
     }
     
     func onAdapterDisconnected() {
-        
+        logger.log("Adapter disconnected.")
     }
     
     func onAdapterReceiveResponse(response: String?) {
-        
+        logger.log("Adapter received response: \(response)")
     }
-    
-
-    // todo: implement the delegate functions BluetoothManagerDelegate 
 
 }
