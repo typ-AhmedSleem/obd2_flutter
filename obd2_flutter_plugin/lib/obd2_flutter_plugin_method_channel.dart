@@ -19,7 +19,7 @@ class MethodChannelObd2FlutterPlugin extends Obd2FlutterPluginPlatform {
 
   @override
   Future<bool?> connect(String address) async {
-    return await fuelChannel.invokeMethod<bool?>(CONNECT_OBD_METHOD_NAME);
+    return await fuelChannel.invokeMethod<bool?>(CONNECT_OBD_METHOD_NAME, address);
   }
 
   @override
