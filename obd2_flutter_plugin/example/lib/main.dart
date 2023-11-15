@@ -87,25 +87,34 @@ class _MyAppState extends State<MyApp> {
                 child: Text('Scan bluetooth devices'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  print('Button 2 pressed');
-                  // Add your functionality here for Button 2
+                onPressed: ()async{
+                  try {
+                    var connected = await _obd2FlutterPlugin.connect("123-456-789");
+                  } on PlatformException {
+                    
+                  }
                 },
-                child: Text('Button 2'),
+                child: Text('Connect to adapter'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  print('Button 3 pressed');
-                  // Add your functionality here for Button 3
+                onPressed: () async{
+                  try {
+                    await _obd2FlutterPlugin.init();
+                  } on PlatformException {
+                    
+                  }
                 },
-                child: Text('Button 3'),
+                child: Text('Initialize adapter'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  print('Button 4 pressed');
-                  // Add your functionality here for Button 4
+                onPressed: () async{
+                  try {
+                    var fuel = await _obd2FlutterPlugin.getFuelLevel();
+                  } on PlatformException {
+
+                  }
                 },
-                child: Text('Button 4'),
+                child: Text('Get fuel level'),
               ),
             ],
           ),
