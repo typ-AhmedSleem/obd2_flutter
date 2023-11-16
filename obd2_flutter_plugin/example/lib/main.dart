@@ -80,8 +80,7 @@ class _MyAppState extends State<MyApp> {
                     var devices = await _obd2FlutterPlugin.getBluetoothDevices() ?? List.empty();
                     logger.log("Got devices: $devices");
                   } on PlatformException {
-                    logger.log("Error getting bluetooth devices");
-                  
+                    logger.log("Error getting bluetooth devices.");
                   }
                 },
                 child: Text('Scan bluetooth devices'),
@@ -90,8 +89,9 @@ class _MyAppState extends State<MyApp> {
                 onPressed: ()async{
                   try {
                     var connected = await _obd2FlutterPlugin.connect("123-456-789");
+                    logger.log("Connection to adapter: $connected");
                   } on PlatformException {
-                    
+                    logger.log("Can't connect to adapter");
                   }
                 },
                 child: Text('Connect to adapter'),
@@ -101,7 +101,7 @@ class _MyAppState extends State<MyApp> {
                   try {
                     await _obd2FlutterPlugin.init();
                   } on PlatformException {
-                    
+                    logger.log("Can't initialize adapter");
                   }
                 },
                 child: Text('Initialize adapter'),
@@ -110,8 +110,9 @@ class _MyAppState extends State<MyApp> {
                 onPressed: () async{
                   try {
                     var fuel = await _obd2FlutterPlugin.getFuelLevel();
+                    logger.log("Got fuel level: $fuel");
                   } on PlatformException {
-
+                    logger.log("Can't get fuel level");
                   }
                 },
                 child: Text('Get fuel level'),

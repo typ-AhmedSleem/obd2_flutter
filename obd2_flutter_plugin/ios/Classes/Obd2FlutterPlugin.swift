@@ -19,6 +19,24 @@ public class Obd2FlutterPlugin: NSObject, FlutterPlugin {
             callback(.success(connected))
         }
     }
+    
+    private func initializeOBD(callback: @escaping (Result<Bool, Error>) -> Void) {
+        Task {
+            await self.obd2.initializeOBD()
+            callback(.success(true))
+        }
+    }
+    
+    private func getFuelLevel(callback: @escaping (Result<String, ResponseError>) -> Void) {
+        Task {
+            let fuelLevel = await self.obd2.executeCommand(FuelLevelCommand(delay: 100), expectResponse: true)
+            guard let fuelLevel = fuelLevel else {
+                callback(.failure(ResponseError(message: "Can't get fuelLevel", matchRegex: false)))
+                return
+            }
+            callback(.success(fuelLevel))
+        }
+    }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
       print("[PLUGIN]: Got call=\(call.method) | args=\(String(describing: call.arguments))")
@@ -69,24 +87,45 @@ public class Obd2FlutterPlugin: NSObject, FlutterPlugin {
               details: nil
             ))
         }
-//      case MethodsNames.INIT_ADAPTER:
-//        do {
-//          await self.obd2.initializeOBD()
-//          //* This method result nothing and idk why :)
-//        } catch {
-//          result(FlutterError(
-//            code: "400",
-//            message: "Can't initialize the OBD adapter. Check if it's connected or it may be out-of-range",
-//            details: nil
-//          ))
-//        }
-//      case MethodsNames.GET_FUEL_LEVEL:
-//        do {
-//            let fuelLevel = await obd2.executeCommand(FuelLevelCommand(delay: 100), expectResponse: true)
-//          result(fuelLevel)
-//        } catch {
-//          result(-1)
-//        }
+      case MethodsNames.INIT_ADAPTER:
+        //* This method result nothing and idk why :)
+        do {
+            self.initializeOBD() { res in
+                switch res {
+                case .success(let initialized):
+                    print("Initialized")
+                    result(initialized)
+                case .failure(let error):
+                    print(error)
+                    result(FlutterError(
+                        code: "400",
+                        message: "Can't initialize adapter",
+                        details: nil))
+                }
+            }
+          
+        } catch {
+          result(FlutterError(
+            code: "400",
+            message: "Can't initialize the OBD adapter. Check if it's connected or it may be out-of-range",
+            details: nil
+          ))
+        }
+      case MethodsNames.GET_FUEL_LEVEL:
+        do {
+            self.getFuelLevel() { res in
+                switch res {
+                case .success(let fuelLevel):
+                    print("Got fuel level: \(fuelLevel)")
+                    result(fuelLevel)
+                case .failure(let error):
+                    print("Error getting fuelLevel: \(error.message)")
+                    result("UNKNOWN")
+                }
+            }
+        } catch {
+          result("UNKNOWN")
+        }
       default:
         result(FlutterMethodNotImplemented)
       }
