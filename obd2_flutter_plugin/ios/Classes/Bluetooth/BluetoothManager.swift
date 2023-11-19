@@ -73,7 +73,9 @@ class BluetoothManager : NSObject {
     */
     public func retrieveBoundedBluetoothDevicesSerialized() -> [String] {
         var devices: [String] = []
-        let devicesList: [CBPeripheral]  = self.centralManager?.retrievePeripherals(withIdentifiers: []) ?? []
+        let devicesList: [CBPeripheral]  = self.centralManager?.retrievePeripherals(withIdentifiers: [
+            UUID(uuidString: "5541F9E2-0A0C-FBCD-EAAA-A4DB505F2A7C")!
+        ]) ?? []
         logger.log("Found \(devicesList.count) device.")
         for bleDevice: CBPeripheral in devicesList {
             if bleDevice.name != nil {
