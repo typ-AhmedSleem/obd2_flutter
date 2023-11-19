@@ -40,6 +40,12 @@ class BluetoothManager : NSObject {
         self.delegate = delegate
         logger.log("BLEManager has been initialized. State is: \(self.state)")
     }
+    
+    public func scanForDevices() {
+        if self.isInitialized {
+            self.centralManager?.scanForPeripherals(withServices: nil, options: nil)
+        }
+    }
 
     /**
     * Performs a characteristics discovery for each service
@@ -67,8 +73,9 @@ class BluetoothManager : NSObject {
     */
     public func retrieveBoundedBluetoothDevicesSerialized() -> [String] {
         var devices: [String] = []
-        let boundedDevices: [CBPeripheral]  = self.centralManager?.retrieveConnectedPeripherals(withServices: []) ?? []
-        for bleDevice: CBPeripheral in boundedDevices {
+        let devicesList: [CBPeripheral]  = self.centralManager?.retrievePeripherals(withIdentifiers: []) ?? []
+        logger.log("Found \(devicesList.count) device.")
+        for bleDevice: CBPeripheral in devicesList {
             if bleDevice.name != nil {
                 //* Add the device to bounded devices
                 self.boundedDevices[bleDevice.identifier.uuidString] = bleDevice
@@ -76,7 +83,9 @@ class BluetoothManager : NSObject {
             let deviceMapped = ["name": bleDevice.name ?? "unnamed device", "address": bleDevice.identifier.uuidString]
             if let jsonDevice = deviceMapped.serializeToJSON() {
                 devices.append(jsonDevice)
+                logger.log(jsonDevice)
             }
+            
         }
         logger.log("retrieveBoundedBluetoothDevicesSerialized: \(devices)")
         return devices
@@ -89,6 +98,7 @@ class BluetoothManager : NSObject {
         }
         if self.connected {
             //* Already connected. No need to connect again
+            logger.log("Already connected")
             return true
         }
         if self.obdAdapter == nil {
@@ -98,6 +108,7 @@ class BluetoothManager : NSObject {
                 self.obdAdapter = self.boundedDevices[address]
                 //* Check again
                 if self.obdAdapter == nil {
+                    logger.log("Can't find the device at all. It may be out of range.")
                     //* OBD adapter is either out of range or hasn't connected to system at first
                     return false
                 }
@@ -134,9 +145,16 @@ extension BluetoothManager: CBCentralManagerDelegate {
     func centralManager( _ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         // Log
         let name = peripheral.name ?? "unnamed device"
-        logger.log("Found device: \(name)")
-        logger.log("\t\(advertisementData)")
+        logger.log("Found device: \(name) | \(peripheral.identifier.uuidString)")
         logger.log("=======================")
+        if peripheral.identifier.uuidString == "36464C3B-E4B3-F601-0D7C-90F9B3E17B27" {
+            logger.log("Found device")
+            self.centralManager?.stopScan()
+            self.boundedDevices["36464C3B-E4B3-F601-0D7C-90F9B3E17B27"] = peripheral
+            Task {
+                await self.connect(target: "36464C3B-E4B3-F601-0D7C-90F9B3E17B27")
+            }
+        }
     }
     
     /** [DELEGATED] Called when a central manager did updated its state */

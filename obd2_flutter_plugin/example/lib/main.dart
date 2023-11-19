@@ -19,7 +19,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   String _fuelLevel = "--";
-  List<String> devices = List.empty();
+  List<Object?> devices = List.empty();
   final _obd2FlutterPlugin = Obd2FlutterPlugin();
   final logger = Logger("MyApp");
 
@@ -31,35 +31,35 @@ class _MyAppState extends State<MyApp> {
 
   // Platform messages are asynchronous, so we initialize in an async method.
   Future<void> initPlatformState() async {
-    //* Get bounded bluetooth device
-    try {
-      devices = await _obd2FlutterPlugin.getBluetoothDevices() ?? List.empty();
-      logger.log("Got devices: $devices");
-    } on PlatformException {
-      logger.log("Error getting bluetooth devices");
-      return;
-    }
+    // //* Get bounded bluetooth device
+    // try {
+    //   devices = await _obd2FlutterPlugin.getBluetoothDevices() ?? List.empty();
+    //   logger.log("Got devices: $devices");
+    // } on PlatformException {
+    //   logger.log("Error getting bluetooth devices");
+    //   return;
+    // }
 
-    // todo: Connect to target device
+    // // todo: Connect to target device
 
-    // todo: Init the target device
+    // // todo: Init the target device
 
-    //* Fuel level
-    String fuelLevel;
-    try {
-      fuelLevel = await _obd2FlutterPlugin.getFuelLevel() ?? "-1";
-    } on PlatformException {
-      fuelLevel = "UNKNOWN";
-    }
+    // //* Fuel level
+    // String fuelLevel;
+    // try {
+    //   fuelLevel = await _obd2FlutterPlugin.getFuelLevel() ?? "-1";
+    // } on PlatformException {
+    //   fuelLevel = "UNKNOWN";
+    // }
 
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
+    // // If the widget was removed from the tree while the asynchronous platform
+    // // message was in flight, we want to discard the reply rather than calling
+    // // setState to update our non-existent appearance.
+    // if (!mounted) return;
 
-    setState(() {
-      _fuelLevel = fuelLevel;
-    });
+    // setState(() {
+    //   _fuelLevel = fuelLevel;
+    // });
   }
 
   @override
@@ -79,8 +79,8 @@ class _MyAppState extends State<MyApp> {
                   try {
                     var devices = await _obd2FlutterPlugin.getBluetoothDevices() ?? List.empty();
                     logger.log("Got devices: $devices");
-                  } on PlatformException {
-                    logger.log("Error getting bluetooth devices.");
+                  } on PlatformException catch (e) {
+                    logger.log("Error getting bluetooth devices. $e");
                   }
                 },
                 child: Text('Scan bluetooth devices'),

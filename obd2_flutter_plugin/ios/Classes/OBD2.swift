@@ -25,7 +25,8 @@ class OBD2 : NSObject {
 
     override init() {
         super.init()
-        logger.log("Creating OBD2 instance...")
+        self.initBluetoothManager()
+        logger.log("Created OBD2 instance.")
     }
 
     public func initBluetoothManager() {
