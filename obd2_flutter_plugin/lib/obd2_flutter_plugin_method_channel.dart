@@ -12,9 +12,9 @@ class MethodChannelObd2FlutterPlugin extends Obd2FlutterPluginPlatform {
   final fuelChannel = const MethodChannel(BLUE_DEVICES_CHANNEL);
 
   @override
-  Future<List<String>?> getBLEDevices() async {
+  Future<List<Object?>> getBLEDevices() async {
     return await bleChannel
-        .invokeMethod<List<String>?>(SCAN_BLE_DEVICES_METHOD_NAME);
+        .invokeMethod(SCAN_BLE_DEVICES_METHOD_NAME);
   }
 
   @override

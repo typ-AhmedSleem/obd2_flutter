@@ -45,7 +45,12 @@ public class Obd2FlutterPlugin: NSObject, FlutterPlugin {
         if self.obd2.isBLEManagerInitialized {
           do {
             let devices: [String] = obd2.bluetoothManager?.retrieveBoundedBluetoothDevicesSerialized() ?? []
-              print("[PLUGIN]: Retrieved devices= \(devices)")
+              if devices.isEmpty {
+                  print("No bounded devices found. Scanning for devices...")
+                  self.obd2.bluetoothManager?.scanForDevices()
+              } else {
+                  print("[PLUGIN]: Retrieved devices= \(devices)")
+              }
             result(devices)
           } catch {
             let emptyDevicesList: [String] = []
