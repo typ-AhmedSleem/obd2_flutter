@@ -23,9 +23,10 @@ class _MyAppState extends State<MyApp> {
   final logger = Logger("MyApp");
   final _obd2FlutterPlugin = Obd2FlutterPlugin();
 
-  Iterable<BluetoothDevice> bleDevices = [];
-  String? adapterAddress;
-  bool adapterInitialized = false;
+  Iterable<BluetoothDevice> _bleDevices = [];
+  String? _adapterAddress;
+  bool _connected = false;
+  bool _adapterInitialized = false;
   String _fuelLevel = "--";
 
   @override
@@ -63,30 +64,40 @@ class _MyAppState extends State<MyApp> {
                       }
                     }
                     setState(() {
-                      bleDevices = devices;
-                      if (tempAddress != null) adapterAddress = tempAddress;
+                      _bleDevices = devices;
+                      if (tempAddress != null) _adapterAddress = tempAddress;
                     });
                   } on PlatformException catch (e) {
                     logger.log("Error getting bluetooth devices.\nReason: $e");
                   }
                 },
-                child: Text(bleDevices.isNotEmpty ? "Found ${bleDevices.length} device" : "Scan Bluetooth for devices"),
+                child: Text(_bleDevices.isNotEmpty ? "Found ${_bleDevices.length} device" : "Scan Bluetooth for devices"),
               ),
               CupertinoButton(
                 onPressed: () async {
                   try {
-                    var connected = await _obd2FlutterPlugin.connect(adapterAddress ?? "") ?? false;
-                    logger.log(connected ? "Connected to adapter" : "Can't connect to adapter");
+                    final connected = await _obd2FlutterPlugin.connect(_adapterAddress ?? "") ?? false;
+                    logger.log(connected ? "Connected to adapter" : "Connect to adapter");
+                    setState(() {
+                      _connected = connected;
+                    });
                   } on PlatformException catch (e) {
                     logger.log("Error connecting to adapter.\nReason: $e");
                   }
                 },
-                child: Text(adapterAddress != null ? 'Connect to ${adapterAddress ?? ""}' : ""),
+                child: Text(_connected
+                    ? "Connected to adapter"
+                    : _adapterAddress != null
+                        ? 'Connect to $_adapterAddress'
+                        : "Connect to adapter"),
               ),
               CupertinoButton(
                 onPressed: () async {
                   try {
                     await _obd2FlutterPlugin.init();
+                    setState(() {
+                      _adapterInitialized = true;
+                    });
                   } on PlatformException catch (e) {
                     logger.log("Can't initialize adapter..\nReason: $e");
                   }
