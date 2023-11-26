@@ -9,8 +9,8 @@ import CoreBluetooth
 
 open class ObdCommand {
     
-    private let logger: Logger = Logger("ObdCommand")
-    // Obd command variables
+    private let logger: Logger
+    //* Obd command variables
     internal let buffer : NSMutableArray
     public let cmd : String
     public var useImperialUnits : Bool
@@ -29,9 +29,14 @@ open class ObdCommand {
         self.responseDelayInMs = 0
         self.timeStart = -1
         self.timeEnd = -1
+        self.logger = Logger("ObdCommand::\(command)")
     }
 
-     func execute(bleManager: BluetoothManager, expectResponse: Bool) async -> String? {
+    /** Executes the holding command and return its response if expecting.
+    *!  CAUTION: This method doesn't check for channels or adapter connection
+    *!  so, when calling it, you must ensure that adapter is connected and channel was discovered and open
+    */
+    func execute(bleManager: BluetoothManager, expectResponse: Bool) async -> String? {
         do {    
             // Time the start of execution
             self.timeStart = TimeHelper.currentTimeInMillis()
@@ -76,13 +81,14 @@ open class ObdCommand {
     }
     
     private func readRawBytes(bm bleManager: BluetoothManager) async {
-        // todo: Check latest ResponseHolder instance in BLEManager
-        // todo: Consume that response if not yet consumed
+        //* Consume the very first packet on ResponseStation instance
+        let packet = bleManager.consumeNextResponse()
+        self.rawData = packet.decodePayload()
     }
     
     private func checkForErrors() async throws {
         if self.rawData == nil {
-            return
+            throw NoDataError()
         }
         let errors = [
             NoDataError(),
@@ -107,7 +113,7 @@ open class ObdCommand {
      * Resolves the rawData of response and fill buffer with valid response bytes
      */
     private func fillBuffer() async {
-        fatalError("Not yet implemented")
+        logger.log("fillBuffer: NOT YET IMPLEMENTED")
     }
     
     /**

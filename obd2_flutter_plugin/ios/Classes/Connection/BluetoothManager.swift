@@ -5,6 +5,7 @@ class BluetoothManager : NSObject {
 
     //* Global runtime
     private let logger = Logger("BLEManager")
+    private let responseStation: ResponseStation
     private var delegate: BluetoothManagerDelegate?
     private var boundedDevices: [String: CBPeripheral] = [:]
     private var scannedDevicesUUIDs: [UUID] = []
@@ -35,15 +36,12 @@ class BluetoothManager : NSObject {
             return self.isInitialized && self.centralManager?.isScanning ?? false
         }
     }
-
-    //* Flags for commands with expected responses
-    private var flagWaitingForResponse: Bool = false
-    private var flagReceivedResponse: Bool = false
     
     public init(delegate: BluetoothManagerDelegate?) {
         super.init()
-        self.centralManager = CBCentralManager(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
         self.delegate = delegate
+        self.responseStation = ResponseStation(queueSize: 50)
+        self.centralManager = CBCentralManager(delegate: self, queue: nil, options: [CBCentralManagerOptionShowPowerAlertKey: true])
         logger.log("BLEManager has been initialized. State is: \(self.state)")
     }
     
@@ -138,9 +136,10 @@ class BluetoothManager : NSObject {
         guard let adapter = obdAdapter, let channel = obdChannel else { throw CommandExecutionError()  }
         //* Send data adapter
         adapter.writeValue(data, for: channel, type: .withResponse)
-        //* Raise/Lower proper flags
-        self.flagWaitingForResponse = false
-        self.flagReceivedResponse = false
+    }
+
+    public func consumeNextResponse() -> ResponsePacket {
+        return self.responseStation.consume()
     }
 
 }
@@ -155,9 +154,12 @@ extension BluetoothManager: CBCentralManagerDelegate {
         logger.log("\nDiscovered BLE device: \(name) | \(address.uuidString)")
         if name == OBDConstants.OBD_ADAPTER_NAME && !self.isChannelOpened {
             logger.log("Found adapter at address: \(address.uuidString)")
+            // Stop scanning for devices
             self.centralManager?.stopScan()
+            // Save a copy of adapter peripheral at runtime
             self.obdAdapter = peripheral
             self.boundedDevices[address.uuidString] = peripheral
+            // Connect to adapter
             self.connect(target: address)
         }
     }
@@ -219,7 +221,6 @@ extension BluetoothManager : CBPeripheralDelegate {
             self.channels[uuid] = characteristic
             logger.log("Discovered a characteristic: \(uuid)")
         }
-        // todo: Notify the delegate that BluetoothManager is ready to send/receive data to/from device
     }
 
     func peripheral(_ peripheral: CBPeripheral, didUpdateValueFor characteristic: CBCharacteristic, error: Error?) {
@@ -227,10 +228,11 @@ extension BluetoothManager : CBPeripheralDelegate {
             logger.log("Error reading response: \(error)")
             return
         }
-        //* Update flags on response
-        if self.flagWaitingForResponse {
-            self.flagWaitingForResponse = false
-            self.flagReceivedResponse = true
+        //* Build a new packet for received data and push it to station
+        if let response = characteristic.value {
+            let responsePacket = ResponsePacket(payload: response)
+            self.responseStation.push(packet: responsePacket)
+            logger.log("Pushed a new packet to the station. Payload: \(responsePacket.decodePayload()) | Station now has \(self.responseStation.queueSize)/\(self.responseStation.maxQueueSize) packets.")
         }
     }
 

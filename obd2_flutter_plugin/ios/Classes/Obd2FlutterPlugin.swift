@@ -83,8 +83,6 @@ public class Obd2FlutterPlugin: NSObject, FlutterPlugin {
                     result(FlutterError())
                 }
             }
-//            let connected = self.connect(address)
-//          result(connected)
         } catch {
             result(FlutterError(
               code: "400",
