@@ -30,6 +30,7 @@ open class ObdCommand {
         self.timeStart = -1
         self.timeEnd = -1
         self.logger = Logger("ObdCommand::\(command)")
+        logger.log("Created command: \(self.cmd)")
     }
 
     /** Executes the holding command and return its response if expecting.
@@ -66,6 +67,7 @@ open class ObdCommand {
      * Sends the OBD-II request.
      */
     private func sendCommand(bm: BluetoothManager) async throws {
+        logger.log("Sending command: \(self.cmd)")
         try await bm.send(dataToSend: self.cmd)
     }
     
@@ -121,11 +123,12 @@ open class ObdCommand {
      * called only once to perform calculations.
      */
     func performCalculations() async {
-        fatalError("This method should be overridden.")
+        
     }
     
     public func getFormattedResult() -> String {
-        fatalError("This method should be overridden.")
+        //fatalError("This method should be overridden.")
+        return "NO RESULT"
     }
 
     public func getResult() -> String? {
@@ -133,7 +136,7 @@ open class ObdCommand {
     }
 
     public func getResultUnit() -> String {
-        fatalError("This method should be overridden.")
+       return "?"
     }
 
 }
