@@ -28,7 +28,7 @@ class BluetoothManager : NSObject {
     }
     public var isChannelOpened: Bool {
         get {
-            return self.connected && self.obdChannel != nil
+            return self.connected && !self.channels.isEmpty
         }
     }
     public var isScanning: Bool {
@@ -85,7 +85,6 @@ class BluetoothManager : NSObject {
             return true
         }
         if self.obdAdapter == nil {
-            guard address != nil else { return false }
             if let address = address {
                 //* Retrieve device in bounded devices first
                 self.obdAdapter = self.boundedDevices[address]
@@ -99,11 +98,9 @@ class BluetoothManager : NSObject {
                 return false
             }
         }
+        logger.log("Connecting to adapter...")
         //* Connect to adapter
-        self.centralManager?.connect(obdAdapter!, options: [
-            CBConnectPeripheralOptionNotifyOnDisconnectionKey: true,
-            CBConnectPeripheralOptionNotifyOnConnectionKey: true
-        ])
+        self.centralManager?.connect(obdAdapter!, options: nil)
         return self.connected
     }
 
@@ -129,15 +126,32 @@ class BluetoothManager : NSObject {
 
     public func send(dataToSend: String) async throws {
         //* Check if device is connected and at least only one characteristics has been discovered
-        guard self.obdChannel != nil else { throw CommandExecutionError() }
+        guard self.isChannelOpened else {
+            logger.log("Not connected to adapter")
+            throw CommandExecutionError()
+        }
         //* Get the bytes of the data to be sent encoded in utf8 format
-        guard let data = dataToSend.data(using: .utf8) else { throw CommandExecutionError() }
-        guard let adapter = obdAdapter, let channel = obdChannel else { throw CommandExecutionError()  }
+        guard let data = dataToSend.data(using: .utf8) else { 
+            logger.log("Data to send is empty")
+            throw CommandExecutionError() }
         //* Send data adapter
-        adapter.writeValue(data, for: channel, type: .withResponse)
+        for channel in self.channels.keys {
+            logger.log("Writing '\(data)' to channel: \(channel)")
+            if let adapter = obdAdapter, let chr = self.channels[channel] {
+                if chr.properties.contains(.write) {
+                    adapter.writeValue(data, for: chr, type: .withResponse)
+                    return
+                }                  
+                if chr.properties.contains(.writeWithoutResponse) {
+                    adapter.writeValue(data, for: chr, type: .withoutResponse)
+                    return
+                }
+            }
+        }
     }
 
     public func consumeNextResponse() -> ResponsePacket {
+        logger.log("Consumed a response packet")
         return self.responseStation.consume()
     }
 
@@ -159,9 +173,12 @@ extension BluetoothManager: CBCentralManagerDelegate {
             self.obdAdapter = peripheral
             self.boundedDevices[address.uuidString] = peripheral
             // Connect to adapter
-            Task {
-                await self.connect(target: address.uuidString)
-            }
+            //logger.log("Connecting to adapter...")
+            //* Connect to adapter
+            //self.centralManager?.connect(obdAdapter!, options: nil)
+//            Task {
+//                await self.connect(target: address.uuidString)
+//            }
         }
     }
     
@@ -171,7 +188,7 @@ extension BluetoothManager: CBCentralManagerDelegate {
     }
 
     /** [DELEGATED] Called when a successful connection with the OBD adapter was established */
-    func centralManager( central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         //* Discover services
         self.connected = true
         self.obdAdapter?.delegate = self
@@ -241,6 +258,7 @@ extension BluetoothManager : CBPeripheralDelegate {
         if let error = error {
             logger.log("Error sending data: \(error)")
         }
+        logger.log("Wrote something to channel: \(characteristic.uuid.uuidString)")
     }
 
 }
