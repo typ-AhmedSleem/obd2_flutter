@@ -27,7 +27,7 @@ class OBD2 : NSObject {
         super.init()
         self.delegate = self
         self.initBluetoothManager()
-        logger.log("Created OBD2 instance.")
+        logger.log("Created a new OBD2 instance.")
     }
 
     public func initBluetoothManager() {
@@ -58,6 +58,7 @@ class OBD2 : NSObject {
                 SelectProtocolCommand(obdProtocol: ObdProtocols.AUTO)
             ]
             for command in initialCommands {
+                logger.log("(initializeOBD): Executing '\(command.cmd)' ...")
                 await self.executeCommand(command, expectResponse: false)
             }
        // }
@@ -82,6 +83,13 @@ class OBD2 : NSObject {
             logger.log("Command is nil")
             return nil
         }
+    }
+    
+    public func getFuelLevel() async -> String? {
+        let fuelLevel = await self.executeCommand(FuelLevelCommand(delay: 100), expectResponse: true)
+        
+        
+        return fuelLevel
     }
 
 }
@@ -118,7 +126,7 @@ extension OBD2: BluetoothManagerDelegate {
 
 extension OBD2: OBD2Delegate {
     func onCommandExecuted(_ command: ObdCommand, hasResponse: Bool) {
-        logger.log("Command \(command.cmd) executed")
+        // logger.log("Command \(command.cmd) executed")
     }
     
     func onResponseReceived(_ command: ObdCommand, response: String?) {

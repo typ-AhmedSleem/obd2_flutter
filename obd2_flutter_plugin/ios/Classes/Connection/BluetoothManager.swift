@@ -77,11 +77,12 @@ class BluetoothManager : NSObject {
     public func connect(target address: String?) async -> Bool {
         if !self.isInitialized {
             //* Not initialized. Report Bluetooth either poweredOff, unsupported or has error
+            logger.log("BluetoothManager isn't initialized. CurrentState: \(self.state)")
             return false
         }
         if self.connected {
             //* Already connected. No need to connect again
-            logger.log("Already connected")
+            logger.log("Adapter is already connected")
             return true
         }
         if self.obdAdapter == nil {
@@ -112,47 +113,51 @@ class BluetoothManager : NSObject {
     */
     private func discoverCharacteristics(client: CBPeripheral?) {
         if let services = client?.services {
-            logger.log("===== START CHARACTERISTICS DISCOVERY =====")
+            logger.log("===== START SERVICE DISCOVERY =====")
             for service in services {
-                logger.log("\tTrying with service: \(service.uuid)")
+                logger.log("\tDiscovering characteristics of service: \(service.uuid)")
                 //* Discover our chars with our specific UUIDs
                 client?.discoverCharacteristics(nil, for: service)
-                if service.uuid == UUIDs.serviceUUID || service.uuid == UUIDs.charUUID {
-                }
             }
-            logger.log("===== END CHARACTERISTICS DISCOVERY =====")
+            logger.log("===== END SERVICE DISCOVERY =====")
         }
     }
 
     public func send(dataToSend: String) async throws {
         //* Check if device is connected and at least only one characteristics has been discovered
         guard self.isChannelOpened else {
-            logger.log("Not connected to adapter")
+            logger.log("Neither adapter is connected nor at least one channel is opened.")
             throw CommandExecutionError()
         }
         //* Get the bytes of the data to be sent encoded in utf8 format
         guard let data = dataToSend.data(using: .utf8) else { 
-            logger.log("Data to send is empty")
-            throw CommandExecutionError() }
+            logger.log("Can't send empty data.")
+            throw CommandExecutionError()
+        }
         //* Send data adapter
-        for channel in self.channels.keys {
-            logger.log("Writing '\(data)' to channel: \(channel)")
-            if let adapter = obdAdapter, let chr = self.channels[channel] {
-                if chr.properties.contains(.write) {
-                    adapter.writeValue(data, for: chr, type: .withResponse)
-                    return
-                }                  
-                if chr.properties.contains(.writeWithoutResponse) {
-                    adapter.writeValue(data, for: chr, type: .withoutResponse)
-                    return
+        if let adapter = obdAdapter {
+            for channel in self.channels.keys {
+                if let chr = self.channels[channel] {
+                    if chr.properties.contains(.write) {
+                        logger.log("Writing with response: '\(String(data: data, encoding: .utf8) ?? "")' to channel: '\(channel)'")
+                        adapter.writeValue(data, for: chr, type: .withResponse)
+                        continue
+                    }
+                    if chr.properties.contains(.writeWithoutResponse) {
+                        logger.log("Writing without response: '\(String(data: data, encoding: .utf8) ?? "")' to channel: '\(channel)'")
+                        adapter.writeValue(data, for: chr, type: .withoutResponse)
+                        continue
+                    }
+                    self.logger.log("Charac: \(chr.uuid.uuidString) has value: \(ResponsePacket(payload: chr.value ?? Data()).decodePayload())")
                 }
             }
         }
     }
 
     public func consumeNextResponse() -> ResponsePacket {
-        logger.log("Consumed a response packet")
-        return self.responseStation.consume()
+        let response = self.responseStation.consume()
+        logger.log("Consumed a response packet. Payload: '\(response.decodePayload())'")
+        return response
     }
 
 }
@@ -234,7 +239,7 @@ extension BluetoothManager : CBPeripheralDelegate {
         guard let characteristics = service.characteristics else { return }
         for characteristic in characteristics {
             // todo: If we need to subscribe to this channel, uncomment the line below
-            // characteristic.setNotifyValue(true)
+            peripheral.setNotifyValue(true, for: characteristic)
             let uuid = characteristic.uuid.uuidString
             self.channels[uuid] = characteristic
             logger.log("Discovered a characteristic: \(uuid)")
@@ -250,15 +255,16 @@ extension BluetoothManager : CBPeripheralDelegate {
         if let response = characteristic.value {
             let responsePacket = ResponsePacket(payload: response)
             self.responseStation.push(packet: responsePacket)
-            logger.log("Pushed a new packet to the station. Payload: \(responsePacket.decodePayload()) | Station now has \(self.responseStation.queueSize)/\(self.responseStation.maxQueueSize) packets.")
+            logger.log("Pushed a new packet to the station. Payload: (\(responsePacket.decodePayload())) | Station now has \(self.responseStation.queueSize) of \(self.responseStation.maxQueueSize) packets.")
         }
     }
 
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
+        let channelId = characteristic.uuid.uuidString
         if let error = error {
-            logger.log("Error sending data: \(error)")
+            logger.log("Error writing to channel: \(channelId) | Reason: \(error)")
         }
-        logger.log("Wrote something to channel: \(characteristic.uuid.uuidString)")
+        logger.log("Wrote something to channel: \(channelId)")
     }
 
 }
