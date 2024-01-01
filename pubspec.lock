@@ -105,7 +105,7 @@ packages:
       path: obd2_flutter_plugin
       relative: true
     source: path
-    version: "0.0.1"
+    version: "2.0.0"
   path:
     dependency: transitive
     description:

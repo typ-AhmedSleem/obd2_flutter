@@ -19,7 +19,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  final logger = Logger("MyApp");
+  final logger = Logger("App");
   final _obd2FlutterPlugin = Obd2FlutterPlugin();
 
   Iterable<BluetoothDevice> _bleDevices = [];
