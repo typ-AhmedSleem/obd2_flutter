@@ -27,4 +27,4 @@ flutter:
       ios:
         pluginClass: Obd2FlutterPlugin
       macos:
-        pluginClass: macOS_OBD2FlutterPlugin
+        pluginClass: Obd2FlutterPlugin
