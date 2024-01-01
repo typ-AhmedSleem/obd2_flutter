@@ -1,5 +1,5 @@
-import Flutter
-import UIKit
+import Cocoa
+import FlutterMacOS
 
 public class Obd2FlutterPlugin: NSObject, FlutterPlugin {
 

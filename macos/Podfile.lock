@@ -1,0 +1,22 @@
+PODS:
+  - FlutterMacOS (1.0.0)
+  - obd2_flutter_plugin (1.0.0):
+    - FlutterMacOS
+
+DEPENDENCIES:
+  - FlutterMacOS (from `Flutter/ephemeral`)
+  - obd2_flutter_plugin (from `Flutter/ephemeral/.symlinks/plugins/obd2_flutter_plugin/macos`)
+
+EXTERNAL SOURCES:
+  FlutterMacOS:
+    :path: Flutter/ephemeral
+  obd2_flutter_plugin:
+    :path: Flutter/ephemeral/.symlinks/plugins/obd2_flutter_plugin/macos
+
+SPEC CHECKSUMS:
+  FlutterMacOS: 8f6f14fa908a6fb3fba0cd85dbd81ec4b251fb24
+  obd2_flutter_plugin: ef2891c80ce43091b51514c0770df8d111a8450e
+
+PODFILE CHECKSUM: 9cc8fc8fc62b1d9a89fd6f974ad4157b35254030
+
+COCOAPODS: 1.14.3
