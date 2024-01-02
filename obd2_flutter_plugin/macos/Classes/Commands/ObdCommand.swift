@@ -138,7 +138,7 @@ open class ObdCommand {
         //* Remove BUS INIT from response
         response = RegexMatcher.replaceInString(pattern: RegexPatterns.BUSINIT_PATTERN, original: response, replacement: "")
         //* Check one more time if the response is nil or empty
-        guard response != nil && !response.isEmpty else { 
+        guard !response.isEmpty else { 
             throw ResolverErrors.emptyResponse
         }
         //* Check whether response has numeric output
