@@ -179,7 +179,7 @@ open class ObdCommand {
      * This method exists so that for each command, there must be a method that is
      * called only once to perform calculations.
      */
-    func performCalculations() async {
+    func performCalculations() async throws {
         fatalError("This method should be overridden.")
     }
     
