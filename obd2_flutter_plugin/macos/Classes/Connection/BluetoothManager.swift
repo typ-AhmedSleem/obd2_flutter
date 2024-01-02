@@ -269,8 +269,14 @@ extension BluetoothManager : CBPeripheralDelegate {
         //* Build a new packet for received data and push it to station
         if let response = characteristic.value {
             let responsePacket = ResponsePacket(payload: response)
-            self.responseStation.push(packet: responsePacket)
-            self.logger.log("Pushed a new packet to the station. Payload: (\(responsePacket.decodePayload())) | Station now has \(self.responseStation.queueSize) of \(self.responseStation.maxQueueSize) packets.")
+            // Check if response starts with digits
+            if RegexMatcher.isMatchingRegex(inputString: responsePacket.decodePayload(), regexPattern: RegexPatterns.DIGITS_LETTERS_PATTERN) {
+                self.responseStation.push(packet: responsePacket)
+                self.logger.log("Pushed a new packet to the station. Payload: (\(responsePacket.decodePayload())) | Station now has \(self.responseStation.queueSize) of \(self.responseStation.maxQueueSize) packets.")
+            } else {
+                logger.log("Received response but non-numeric: \(responsePacket.decodePayload())")
+            }
+            
         }
     }
 
