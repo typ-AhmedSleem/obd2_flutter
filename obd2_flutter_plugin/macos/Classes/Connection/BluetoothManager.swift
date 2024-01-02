@@ -9,6 +9,7 @@ class BluetoothManager : NSObject {
     private var delegate: BluetoothManagerDelegate?
     private var boundedDevices: [String: CBPeripheral] = [:]
     private var scannedDevicesUUIDs: [UUID] = []
+    private var scanTimer: Timer? = nil
 
     //* Bluetooth runtime
     private var centralManager: CBCentralManager?
@@ -47,6 +48,21 @@ class BluetoothManager : NSObject {
     public func scanForDevices() {
         if !self.isScanning {
             self.centralManager?.scanForPeripherals(withServices: nil, options: nil)
+            // Initiate a scan cancel timer
+            self.scanTimer = Timer.scheduledTimer(timeInterval: 10.0, target: self, selector: #selector(self.stopScan), userInfo: nil, repeats: false)
+        }
+    }
+    
+    @objc
+    public func stopScan() {
+        if self.isScanning && self.scanTimer != nil {
+            logger.log("Stopping bluetooth scan...")
+            // Stop scan
+            self.centralManager?.stopScan()
+            // Invalidate timer
+            self.scanTimer?.invalidate()
+            self.scanTimer = nil
+            logger.log("Scan stopped.")
         }
     }
 
@@ -168,6 +184,10 @@ extension BluetoothManager: CBCentralManagerDelegate {
     func centralManager( _ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String: Any], rssi RSSI: NSNumber) {
         let name = peripheral.name ?? "unnamed device"
         let address = peripheral.identifier
+        // Check whether the device is already in the list
+        if self.scannedDevicesUUIDs.contains(address) {
+            return
+        }
         self.scannedDevicesUUIDs.append(address)
         self.logger.log("\nDiscovered BLE device: \(name) | \(address.uuidString)")
         if name == OBDConstants.OBD_ADAPTER_NAME && !self.isChannelOpened {
@@ -177,11 +197,9 @@ extension BluetoothManager: CBCentralManagerDelegate {
             // Save a copy of adapter peripheral at runtime
             self.obdAdapter = peripheral
             self.boundedDevices[address.uuidString] = peripheral
-            // Connect to adapter
-            self.logger.log("Connecting to adapter...")
             //* Connect to adapter
             Task {
-                await self.connect(target: address.uuidString)
+                _ = await self.connect(target: address.uuidString)
             }
         }
     }

@@ -59,7 +59,7 @@ class OBD2 : NSObject {
             ]
             for command in initialCommands {
                 logger.log("(initializeOBD): Executing '\(command.cmd)' ...")
-                await self.executeCommand(command, expectResponse: false)
+                _ = await self.executeCommand(command, expectResponse: false)
             }
        // }
     }
