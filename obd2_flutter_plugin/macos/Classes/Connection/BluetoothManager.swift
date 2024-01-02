@@ -269,11 +269,11 @@ extension BluetoothManager : CBPeripheralDelegate {
         //* Build a new packet for received data and push it to station
         if let response = characteristic.value {
             let responsePacket = ResponsePacket(payload: response)
-            // Check if response starts with digits
+            // Check if response starts with standard fuel level response
             let payload = responsePacket.decodePayload()
             if payload.contains("41 2F") {
                 self.responseStation.push(packet: responsePacket)
-                self.logger.log("Pushed a new packet to the station. Payload: (\(responsePacket.decodePayload())) | Station now has \(self.responseStation.queueSize) of \(self.responseStation.maxQueueSize) packets.")
+                self.logger.log("Pushed a new response to response station with new fuel level value.")
             } else {
                 logger.log("Received response but non-numeric: \(responsePacket.decodePayload())")
             }
