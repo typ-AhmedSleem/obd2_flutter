@@ -11,7 +11,8 @@ class OBD2 : NSObject {
 
     //* Global runtime
     private let logger = Logger("OBD2")
-    var delegate: OBD2Delegate?
+    private var delegate: OBD2Delegate?
+    private var lastFuelLevel: String = "UNKNOWN"
     private let executionQueue = DispatchQueue(label: "com.typ.obd.OBD2Queue")
 
     //* BluetoothManager runtime
@@ -21,7 +22,6 @@ class OBD2 : NSObject {
             return self.bluetoothManager != nil && self.bluetoothManager!.isInitialized
         }
     }
-
 
     override init() {
         super.init()
@@ -87,9 +87,12 @@ class OBD2 : NSObject {
     
     public func getFuelLevel() async -> String? {
         let fuelLevel = await self.executeCommand(FuelLevelCommand(delay: 100), expectResponse: true)
-        
-        
-        return fuelLevel
+        if let newFuelLevel = fuelLevel {
+            self.lastFuelLevel = newFuelLevel
+            return newFuelLevel
+        } else {
+            return self.lastFuelLevel
+        }
     }
 
 }
