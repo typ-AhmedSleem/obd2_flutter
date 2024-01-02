@@ -270,7 +270,8 @@ extension BluetoothManager : CBPeripheralDelegate {
         if let response = characteristic.value {
             let responsePacket = ResponsePacket(payload: response)
             // Check if response starts with digits
-            if RegexMatcher.isMatchingRegex(inputString: responsePacket.decodePayload(), regexPattern: RegexPatterns.DIGITS_LETTERS_PATTERN) {
+            let payload = responsePacket.decodePayload()
+            if payload.contains("41 2F") {
                 self.responseStation.push(packet: responsePacket)
                 self.logger.log("Pushed a new packet to the station. Payload: (\(responsePacket.decodePayload())) | Station now has \(self.responseStation.queueSize) of \(self.responseStation.maxQueueSize) packets.")
             } else {
