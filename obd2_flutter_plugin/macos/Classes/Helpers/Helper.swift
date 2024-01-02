@@ -18,6 +18,8 @@ class Logger {
     }
 
     public func log(_ subTag: String, _ msg: String) {
+        self.log(msg)
+        return
         var message = "[\(self.TAG):\(subTag)] => \(msg)."
         if self.lastSubTag !=  subTag {
             message = "\n" + message
