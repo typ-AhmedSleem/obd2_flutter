@@ -58,7 +58,7 @@ class ResponseStation {
     public func push(packet responsePacket: ResponsePacket) {
         //* Remove the very first packet and push the new one
         if self.queueSize >= self.maxQueueSize {
-            self.consume()
+            _ = self.consume()
         }
         self.queue.append(responsePacket)
     }
