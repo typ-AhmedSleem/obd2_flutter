@@ -15,14 +15,4 @@ class FuelLevelCommand : PercentageObdCommand {
         self.responseDelayInMs = delay
     }
 
-    func performCalculations() throws {
-        self.logger.log("performCalculations", "Bytes available in buffer[\(self.buffer)]")
-        // ignore first two bytes [hh hh] of the response
-        if buffer.count >= 3 {
-            self.percentage = (Double(buffer[2]) * 100.0) / 255.0;
-        } else {
-            throw ResolverErrors.invalidBufferContent
-        }
-    }
-
 }

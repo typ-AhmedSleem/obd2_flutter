@@ -15,9 +15,14 @@ open class PercentageObdCommand : ObdCommand {
         super.init(command)
     }
 
-    override func performCalculations() async {
+    override func performCalculations() async throws {
+        self.logger.log("performCalculations", "Bytes available in buffer[\(self.buffer)]")
         // ignore first two bytes [hh hh] of the response
-        self.percentage = (buffer[2] as! Double * 100.0) / 255.0;
+        if buffer.count >= 3 {
+            self.percentage = (Double(buffer[2]) * 100.0) / 255.0;
+        } else {
+            throw ResolverErrors.invalidBufferContent
+        }
     }
 
     public override func getFormattedResult() -> String {
