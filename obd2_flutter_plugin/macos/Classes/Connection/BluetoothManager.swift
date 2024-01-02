@@ -86,7 +86,6 @@ class BluetoothManager : NSObject {
             }
             
         }
-        self.logger.log("retrieveBoundedBluetoothDevicesSerialized: \(devices)")
         return devices
     }
 

@@ -180,11 +180,12 @@ open class ObdCommand {
      * called only once to perform calculations.
      */
     func performCalculations() async throws {
-        fatalError("This method should be overridden.")
+        logger.log("This method should be overridden.")
     }
     
     public func getFormattedResult() -> String {
-        fatalError("This method should be overridden.")
+        logger.log("This method should be overridden.")
+        return "NO DATA"
     }
 
     public func getResult() -> String? {
@@ -192,7 +193,8 @@ open class ObdCommand {
     }
 
     public func getResultUnit() -> String {
-        fatalError("This method should be overridden.")
+        logger.log("This method should be overridden.")
+        return "?"
     }
 
 }
